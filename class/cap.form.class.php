@@ -600,6 +600,15 @@
 							$out.= $langs->trans('err_cap_not_complete01');
 						$out.= '</div>';
 					$out.= '</div>';
+
+					$out.= '<div data-role="popup" id="MeteoalarmCalc_popupDialog" data-overlay-theme="a" data-theme="a" data-dismissible="false" style="max-width:400px;">';
+						$out.= '<div data-role="header" id="MeteoalarmCalc_popupDialog_header" data-theme="a">';
+							$out.= '<h2 style="color: yellow;">'.$langs->trans('Meteoalarm Soap').'</h2>';
+						$out.= '</div>';
+						$out.= '<div role="main" id="MeteoalarmCalc_popupDialog_main" class="ui-content" style="max-height: 500px; overflow: auto;">';
+							$out.= $langs->trans('MeteoalarmCalc');
+						$out.= '</div>';
+					$out.= '</div>';
 					break;
 
 				case 'CapButton':
@@ -719,6 +728,15 @@
 								$out.= $msgType;							
 								$out.= $scope;
 						$out.= '</fieldset>';
+
+					if(!empty($this->references[0]))
+					{
+						$out.= '<li id="LIreferences" class="ui-li-static ui-body-inherit ui-last-child">';
+							//$out.= '<div class="ui-input-text ui-body-inherit ui-corner-all ui-shadow-inset">';
+								$out.= '<input placeholder="references" type="text" name="references" value="'.$this->references[0].'">';
+							//$out.= '</div>';
+						$out.= '</li>';
+					}
 				break;
 				
 				case 'category': 
@@ -1359,6 +1377,7 @@
 									$out.= '<li>'.$langs->trans("User").': '.$conf->webservice->login.'</li>';
 									$out.= '<li>'.$langs->trans("LoginDate").': '.date('d.m.Y H:i:s', $_SESSION['timestamp']).'</li>';
 									$out.= '<li><input '.$status_theme.' type="submit" name="send-logout['.$this->login_id.']" value="'.$langs->trans('Logout').'" data-theme="b"></li>';
+									$out.= '<input type="hidden" name="login_sended" id="logout_sended" value="0">';
 								$out.= '</ul>';
 							}
 							else // Login
@@ -1378,18 +1397,24 @@
 		
 								$out.= '<label><input '.$status_theme.' type="checkbox" name="savepass[]">'.$langs->trans("SaveWebservicePass").'</label>';
 								$out.= '<input id="submit_login_button" '.$status_theme.' type="submit" name="send-login['.$this->login_id.']" value="'.$langs->trans('Login').'" data-theme="b">';	
-								$out.= '<input type="hidden" name="login_sended" value="1" data-theme="b">';	
+								$out.= '<input type="hidden" name="login_sended" id="login_sended" value="0">';	
 							}
 							
-							if(empty($conf->webservice_aktive) && $conf->webservice->on == 1 && $this->login_id == 1)
+							if((empty($conf->webservice_aktive) || $conf->webservice_aktive == -1) && $conf->webservice->on == 1 && $this->login_id == 1)
 							{
 								$out.= 			'
 													<script>
 														$("#Login-alert").on("keyup",function(event){
+															event.preventDefault();
 															if ( event.which == 13 ) 
 															{
 																$( "#submit_login_button" ).trigger( "click" );
 															}
+														});
+
+														$( "#submit_login_button" ).on("click", function(){
+															$("#action").remove();
+															$("#login_sended").val(1);
 														});
 														
 														$(document).on("pageshow", "#alert" ,function ()
@@ -1409,7 +1434,13 @@
 							
 							$out = '<div>';
 								$out.= '<label for="'.$type.'">'.$langs->trans("Label".$type).': '.$this->tooltip($type, $langs->trans("Info".$type)).'</label>';
-								$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'" value="'.$this->{$type}[0].'">';
+								if(!is_array($this->{$type}[0])) {
+									$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'" value="'.$this->{$type}[0].'">';
+								} else if(is_array($this->{$type}[0])){
+									foreach($this->{$type}[0] as $key => $val){
+										$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'[]" value="'.$val.'">';
+									}
+								}
 								//$out.= print_r($this, true);
 							$out.= '</div>';
 						break;
@@ -1723,7 +1754,7 @@
 			
 			$out.= '<body>';
 			$out.= '<form method="POST" id="capform" name="capform" action="index.php" enctype="multipart/form-data" data-ajax="false">';
-				$out.= '<input type="hidden" name="action" value="create">';
+				$out.= '<input type="hidden" name="action" id="action" value="create">';
 					
 					foreach($Type_arr as $pagename => $TypePage)
 					{
@@ -2140,7 +2171,7 @@
 
 			$out.= '<body>';
 			$out.= '<form method="POST" id="capform" name="capform" action="index.php" enctype="multipart/form-data" data-ajax="false">';
-				$out.= '<input type="hidden" name="action" value="create">';
+				$out.= '<input type="hidden" name="action" id="action" value="create">';
 						$out.= '<div data-role="page" id="'.$pagename.'">';
 
 							$out.= '<div data-role="panel" data-display="push" id="'.$pagename.'_panel">';
@@ -2341,7 +2372,108 @@
 			
 			return $out;
 		}
-		
+
+		function formPostToCAP($post){
+			require_once 'lib/cap.class.php';
+			$cap_pro = new CapProcessor();
+
+			$post = $this->MakeIdentifier($post);
+
+			$alert = $cap_pro->addAlert();
+			//$post['output'];
+			$alert->setIdentifier($post['identifier']);
+            $alert->setSender($post['sender']);
+            $alert->setSent($post['sent']['date'].' '.$post['sent']['time'].' '.$post['sent']['plus'].' '.$post['sent']['UTC']);
+            $alert->setStatus($post['status']);
+            $alert->setMsgType($post['msgType']);
+            $alert->setSource($post['source']);
+            $alert->setScope($post['scope']);
+            $alert->setRestriction($post['restriction']);
+            $alert->setAddresses($post['addresses']);
+            foreach($post['code'] as $key => $val){
+            	$alert->setCode($val);
+           	}
+            $alert->setNote($post['note']);
+            $alert->setReferences($post['references']);
+            $alert->setIncidents($post['incidents']);
+
+            if(count(array_unique($post['language'])) < 1)
+            {
+            	$post['language'][] = "en-GB";
+            }
+
+			foreach(array_unique($post['language']) as $lang){
+				if(!empty($lang))
+				{
+					$info = $alert->addInfo();
+
+					$info->setLanguage($lang);
+					$info->setCategory($post['category']);
+					$info->setEvent($post['event'][$lang]);
+					$info->setResponseType($post['responseType']);
+
+                	$info->setUrgency($post['urgency']);
+                	$info->setSeverity($post['severity']);
+                	$info->setCertainty($post['certainty']);
+                	$info->setAudience($post['audience']);
+
+
+					if(! empty($post['eventCode']['valueName'][0]))
+					foreach($post['eventCode']['valueName'] as $key => $eventCode)
+					{
+						if(!empty($post['eventCode']['valueName'][$key]))
+						{
+							$info->setEventCode($post['eventCode']['valueName'][$key], $post['eventCode']['value'][$key]);
+						}
+					}
+
+
+            		$info->setEffective($post['effective']['date']." ".$post['effective']['time'].$post['effective']['plus'].$post['effective']['UTC']);
+            		$info->setOnset($post['onset']['date']." ".$post['onset']['time'].$post['onset']['plus'].$post['onset']['UTC']);
+            		$info->setExpires($post['expires']['date']." ".$post['expires']['time'].$post['expires']['plus'].$post['expires']['UTC']);
+
+            		$info->setSenderName($post['senderName']);
+            		$info->setHeadline($post['headline'][$lang]);
+            		$info->setDescription($post['description'][$lang]);
+            		$info->setInstruction($post['instruction'][$lang]);
+            		$info->setWeb($post['web']);
+            		$info->setContact($post['contact']);
+
+					if(! empty($post['parameter']['valueName'][0]))
+					foreach($post['parameter']['valueName'] as $key => $parameter)
+					{
+						if(!empty($post['parameter']['valueName'][$key]))
+						{
+            				$info->setParameter($post['parameter']['valueName'][$key], $post['parameter']['value'][$key]);
+						}
+					}
+
+					if(! empty($post['areaDesc']) || ! empty($post['polygon'])  || ! empty($post['circle']) || ! empty($post['geocode']['value'][0]))
+					{
+						$area = $info->addArea();
+
+                		$area->setAreaDesc($post['areaDesc']);
+                		$area->setPolygon($post['polygon']);
+                		$area->setCircle($post['circle']);
+
+						if(! empty($post['geocode']['value'][0]))
+						foreach($post['geocode']['value'] as $key => $geocode)
+						{
+							if(!empty($post['geocode']['value'][$key]))
+							{
+                				$area->setGeocode($post['geocode']['valueName'][$key], $post['geocode']['value'][$key]);
+							}
+						}
+
+						//$area->setAltitude("1000");
+						//$area->setCeiling("1500");
+					}
+				}
+			}
+
+            return $cap_pro->buildCap();
+		}
+
 		/**
 		 * Function to conect the identifier to one string
 		 *
@@ -2504,11 +2636,6 @@
 				mkdir($post['cap']['output'], 0775);
 			}
 			
-			if(! is_dir($post['cap']['output']) && $post['cap']['output'] != "")
-			{
-				die($langs->trans("perm_for_output1").$post['cap']['output'].$langs->trans("perm_for_output2"));
-				//((die('Permision problems detectet pleas fix this: Can\'t create the folder ("'.$post['cap']['output'].'") please create the folder manualy (rights 0774, group apache) or give the folder of the index.php the group apache! ');
-			}
 			/*
 			 * Special
 			 */

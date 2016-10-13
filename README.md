@@ -1,4 +1,3 @@
-
 # Cap-PHP Library / Cap Creator
 A common alerting protocol library for processing and producing XML-CAP's from a JQuery HTML form.
 
@@ -11,7 +10,39 @@ You can use it as a standalone application or as a web application accessible vi
 
 You can freely use, study, modify or distribute it according to it's Software licence.
 
-[more Detail Information](doc/)
+[**more Information**](doc/)
+
+## Features
+
+* Create valid CAPs Files from scratch with a form
+* Read and modify existing CAPs
+* Send these CAPs via SOAP Webservice
+* Convert CAPs between different CAP implementations
+* Create CAPs with an easy to use, paint-like interface called [**Paint and Alert**](doc/PaintandAlert.md)
+
+
+## Install
+
+We provide the following install instructions:
+* XAMPP on Windows
+* XAMPP on Linux and 
+* Normal Webspace
+
+You can find the instructions [here](doc/install.md)
+
+## Paint and Alert
+
+The new addition to the Cap-PHP-Library, Paint and Alert, was developed for Meteorological Forecast-Institutes without softwaredevelopement.
+
+The Cap-PHP-Library was extended so that...
+a user which is logged in to the Meteoalarm webservice
+and has the permissions to warn a certain country via CAP-Import
+... is shown an additional application called Paint and Alert in the menu.
+The visual interface eases the input and saves a lot of hassle with the necessities of the Cap-Standard. <br>We spare the user every setting that is not absolutely necessary. Paint and Alert was developed with a responsive design that is fully supported by tablets. The interface resembles a paint program.
+
+[**more Information**](doc/PaintandAlert.md)
+
+
 
 ## Utilized Third Party Software
 
@@ -38,6 +69,6 @@ The Cap-PHP Library released under the terms of the GNU General Public License a
 
 See the [COPYING](COPYING) file for a full copy of the license.
 
-Copyright (C) 2015 Guido Schratzer <guido.schratzer@backbone.co.at>
+Copyright (C) 2016 Guido Schratzer <guido.schratzer@backbone.co.at>
 
-Copyright (C) 2015 Niklas Spanring <n.spanring@backbone.co.at>
+Copyright (C) 2016 Niklas Spanring <n.spanring@backbone.co.at>

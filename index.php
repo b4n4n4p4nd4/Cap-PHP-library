@@ -66,7 +66,7 @@
 	
 		return $output;
 	}
-	
+
 	if(file_exists('conf/conf.php'))
 	{
 		include 'conf/conf.php';
@@ -161,10 +161,38 @@
 		}
 		else
 		{
-			die($langs->trans('perm_for_conf').' ['.realpath('conf').'/conf.php]');
+			$error_out.= '['.realpath('conf').'/conf.php] '.$langs->trans('perm_for_conf')."<p>";
 			//die('Permision problems detectet pleas fix this: Can\'t create conf.php file in folder conf/<br>Please give this folder conf/ the group apache and the mod rwxrwxr-x');
 		}
 	}
+
+	if(!empty($_GET['encrypt']))
+	{	
+		$crpt = encrypt_decrypt(1, $_GET['encrypt']);
+		print $crpt;
+		print '<br>'.encrypt_decrypt(2, $crpt);
+		exit;
+	}
+
+	if(!empty($_GET['decrypt']))
+	{	
+		$crpt = encrypt_decrypt(2, $_GET['decrypt']);
+		print $crpt;
+		print '<br>'.encrypt_decrypt(1, $crpt);
+		exit;
+	}
+
+	if(! is_dir("output") || ! is_writable("output"))
+	{
+		$error_out.= '[output/] '.$langs->trans('perm_for_conf')."<p>";
+		//((die('Permision problems detectet pleas fix this: Can\'t create the folder ("'.$post['cap']['output'].'") please create the folder manualy (rights 0774, group apache) or give the folder of the index.php the group apache! ');
+	}
+
+	if(!empty($error_out))
+	{
+		die($error_out);
+	}
+
 	$conf->cap->output="output";
 	$conf->cap->save = 1;
 
@@ -173,6 +201,7 @@
 	session_name(encrypt_decrypt(1, getcwd()));
 	session_start();
 
+	$tryed_login = false;
 	if(!empty($_POST['send-login']) || !empty($_POST['send-logout']))
 	{
 		
@@ -189,8 +218,8 @@
 				session_unset();
 				session_start();
 
-				$Webservicename = explode('.', parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST));
-				setcookie('ServiceHost', $Webservicename[1], strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
+				$Webservicename = parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST);
+				setcookie('ServiceHost', $Webservicename, strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie('timestamp', strtotime('now'), strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie("Session_login_name", $_POST['Session_login_name'][$key], strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie("Session_login_pass", encrypt_decrypt(1,$_POST['Session_login_pass'][$key]), strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
@@ -203,13 +232,14 @@
 				session_unset();
 				session_start();
 				
-				$Webservicename = explode('.', parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST));
-				$_SESSION['ServiceHost'] = $Webservicename[1];
+				$Webservicename = parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST);
+				$_SESSION['ServiceHost'] = $Webservicename;
 				$_SESSION['timestamp'] = strtotime('now');
 				$_SESSION['Session_login_name'] = $_POST['Session_login_name'][$key];
 				$_SESSION['Session_login_pass'] = encrypt_decrypt(1, $_POST['Session_login_pass'][$key]);
 			}
-			//unset($_POST);
+			$tryed_login = true;
+			unset($_POST);
 		}
 		else
 		{
@@ -217,7 +247,7 @@
 			unset($_SESSION['Session_login_name'], $_SESSION['Session_login_pass']);
 			unset($_COOKIE['Session_login_name'], $_COOKIE['Session_login_pass']);
 			setcookie("Session_login_name", '', strtotime(' - 1 day'));  /* verfällt sofort */
-			//unset($_POST);
+			unset($_POST);
 		}
 	}
 	
@@ -292,13 +322,16 @@
 	}
 
 	$login_to_webservice_faild = false;
-	if(!empty($_POST['send-login']) && $conf->webservice_aktive == -1)
+	if($tryed_login == true && $conf->webservice_aktive == -1)
 	{
 		unset($_SESSION['Session_login_name'], $_SESSION['Session_login_pass']);
 		unset($_COOKIE['Session_login_name'], $_COOKIE['Session_login_pass']);
 		unset($conf->webservice->login);
 		unset($conf->webservice->password);
-		unset($_POST);
+		if(!is_array($_POST['send-logout']))
+		{
+			unset($_POST);
+		}
 		$login_to_webservice_faild = true;
 	}
 
@@ -411,10 +444,10 @@
 
 		print $form->Form();
 	}
-	elseif($_POST['action'] == "create" && $_GET['conf'] != 1)
+	elseif($_POST['action'] == "create" && $_GET['conf'] != 1 && $_POST['login_sended'] != 1)
 	{
 		$form = new CAP_Form();
-		$_POST = $form->MakeIdentifier($_POST);
+		//$_POST['alert'] = $form->MakeIdentifier($_POST['alert']);
 		
 		if($conf->webservice_aktive == 1)
 		{
@@ -427,8 +460,9 @@
 		if(!empty($_GET['cap']))
 		{
 			// Used for the Cap preview
-			$cap->buildCap();
-			print $cap->cap;
+			print $form->formPostToCap($_POST);
+			//$cap->buildCap();
+			//print $cap->cap;
 		}
 		else
 		{
