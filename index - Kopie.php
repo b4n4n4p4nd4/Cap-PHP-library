@@ -447,7 +447,7 @@
 	elseif($_POST['action'] == "create" && $_GET['conf'] != 1 && $_POST['login_sended'] != 1)
 	{
 		$form = new CAP_Form();
-		$_POST = $form->MakeIdentifier($_POST);
+		//$_POST['alert'] = $form->MakeIdentifier($_POST['alert']);
 		
 		if($conf->webservice_aktive == 1)
 		{
@@ -460,8 +460,9 @@
 		if(!empty($_GET['cap']))
 		{
 			// Used for the Cap preview
-			$cap->buildCap();
-			print $cap->cap;
+			print $form->formPostToCap($_POST);
+			//$cap->buildCap();
+			//print $cap->cap;
 		}
 		else
 		{

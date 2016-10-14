@@ -1434,13 +1434,7 @@
 							
 							$out = '<div>';
 								$out.= '<label for="'.$type.'">'.$langs->trans("Label".$type).': '.$this->tooltip($type, $langs->trans("Info".$type)).'</label>';
-								if(!is_array($this->{$type}[0])) {
-									$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'" value="'.$this->{$type}[0].'">';
-								} else if(is_array($this->{$type}[0])){
-									foreach($this->{$type}[0] as $key => $val){
-										$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'[]" value="'.$val.'">';
-									}
-								}
+								$out.= '<input '.$status_theme.' type="text" placeholder="'.$type.'" name="'.$type.'" value="'.$this->{$type}[0].'">';
 								//$out.= print_r($this, true);
 							$out.= '</div>';
 						break;
@@ -2372,6 +2366,8 @@
 			
 			return $out;
 		}
+		
+
 
 		function formPostToCAP($post){
 			require_once 'lib/cap.class.php';
@@ -2473,7 +2469,7 @@
 
             return $cap_pro->buildCap();
 		}
-
+		
 		/**
 		 * Function to conect the identifier to one string
 		 *
