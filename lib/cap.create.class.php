@@ -196,10 +196,10 @@
 				$xml->tag_simple('scope', $this->scope);
 				
 				$xml->tag_simple('source', $this->source);
-				$xml->tag_simple('restriction', $this->restriction);
 				$xml->tag_simple('addresses', $this->addresses);
 				$xml->tag_simple('code', $this->code);
 				$xml->tag_simple('note', $this->note);
+				$xml->tag_simple('restriction', $this->restriction);
 				$xml->tag_simple('incidents', $this->incidents);
 				
 				if(count($this->language) > 0)
