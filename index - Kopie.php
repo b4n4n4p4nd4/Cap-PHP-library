@@ -23,18 +23,15 @@
  */
  
 /**
- * Front end of the Cap-php-library
+ * Front end of the Cap-php-library cap 1.3
  */
 	error_reporting(E_ERROR | E_PARSE);
-	ini_set('memory_limit', '1G');
 	
 	require_once 'class/cap.form.class.php';
-	//require_once 'class/cap.map.class.php';
 	require_once 'lib/cap.create.class.php';
 	require_once 'lib/cap.write.class.php';
 	require_once 'lib/cap.convert.class.php';
 	require_once 'class/translate.class.php';
-	require_once 'class/plugin.install.class.php';
 	
 	$langs = new Translate();
 	
@@ -69,7 +66,7 @@
 	
 		return $output;
 	}
-	
+
 	if(file_exists('conf/conf.php'))
 	{
 		include 'conf/conf.php';
@@ -79,7 +76,7 @@
 	}
 	else
 	{
-		chmod('conf/', 755);
+		chmod('conf', 755);
 		$capfile = fopen('conf/conf.php', "w");
 		fwrite($capfile, "
 		<?php
@@ -159,22 +156,51 @@
 		// index.php#conf
 		if(file_exists('conf/conf.php'))
 		{
-			header('Refresh:0');
+			header('Location: index.php#conf');
 			exit;
 		}
 		else
 		{
-			die($langs->trans('perm_for_conf'));
+			$error_out.= '['.realpath('conf').'/conf.php] '.$langs->trans('perm_for_conf')."<p>";
 			//die('Permision problems detectet pleas fix this: Can\'t create conf.php file in folder conf/<br>Please give this folder conf/ the group apache and the mod rwxrwxr-x');
 		}
 	}
+
+	if(!empty($_GET['encrypt']))
+	{	
+		$crpt = encrypt_decrypt(1, $_GET['encrypt']);
+		print $crpt;
+		print '<br>'.encrypt_decrypt(2, $crpt);
+		exit;
+	}
+
+	if(!empty($_GET['decrypt']))
+	{	
+		$crpt = encrypt_decrypt(2, $_GET['decrypt']);
+		print $crpt;
+		print '<br>'.encrypt_decrypt(1, $crpt);
+		exit;
+	}
+
+	if(! is_dir("output") || ! is_writable("output"))
+	{
+		$error_out.= '[output/] '.$langs->trans('perm_for_conf')."<p>";
+		//((die('Permision problems detectet pleas fix this: Can\'t create the folder ("'.$post['cap']['output'].'") please create the folder manualy (rights 0774, group apache) or give the folder of the index.php the group apache! ');
+	}
+
+	if(!empty($error_out))
+	{
+		die($error_out);
+	}
+
 	$conf->cap->output="output";
 	$conf->cap->save = 1;
-	
+
 	$conf->webservice->login = "";
 	$conf->webservice->password = "";
 	session_name(encrypt_decrypt(1, getcwd()));
 	session_start();
+
 	$tryed_login = false;
 	if(!empty($_POST['send-login']) || !empty($_POST['send-logout']))
 	{
@@ -192,8 +218,8 @@
 				session_unset();
 				session_start();
 
-				$Webservicename = explode('.', parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST));
-				setcookie('ServiceHost', $Webservicename[1], strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
+				$Webservicename = parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST);
+				setcookie('ServiceHost', $Webservicename, strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie('timestamp', strtotime('now'), strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie("Session_login_name", $_POST['Session_login_name'][$key], strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
 				setcookie("Session_login_pass", encrypt_decrypt(1,$_POST['Session_login_pass'][$key]), strtotime(' + 3 day'));  /* verfällt in 1 Stunde */
@@ -206,8 +232,8 @@
 				session_unset();
 				session_start();
 				
-				$Webservicename = explode('.', parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST));
-				$_SESSION['ServiceHost'] = $Webservicename[1];
+				$Webservicename = parse_url($conf->webservice->WS_DOL_URL, PHP_URL_HOST);
+				$_SESSION['ServiceHost'] = $Webservicename;
 				$_SESSION['timestamp'] = strtotime('now');
 				$_SESSION['Session_login_name'] = $_POST['Session_login_name'][$key];
 				$_SESSION['Session_login_pass'] = encrypt_decrypt(1, $_POST['Session_login_pass'][$key]);
@@ -236,7 +262,7 @@
 		$conf->webservice->login = $_SESSION['Session_login_name'];
 		$conf->webservice->password = $_SESSION['Session_login_pass'];
 	}
-
+	
 	// build service url
 	$service_arr = explode('/', $conf->webservice->WS_DOL_URL);
 	end($service_arr);
@@ -244,12 +270,7 @@
 
 	$conf->webservice->ns = str_replace($service_arr[$key],'',$conf->webservice->WS_DOL_URL);
 	$conf->webservice->sourceapplication = $conf->webservice->WS_METHOD;
-	//webservice_sourceapplication
-	//webservice_login
-	//webservice_password
-	//webservice_entity
-	//webservice_ns
-	
+
 	// METEOALARM WEBSERVICE ---
 	$conf->meteoalarm = 1;
 	if($conf->meteoalarm == 1)
@@ -274,33 +295,15 @@
 					$ParameterArray = $ParameterArray['document']['AreaInfo'];
 				}
 			}
-			if(file_exists('lib/cap.meteoalarm.webservices.svg.php'))
-			{
-				include 'lib/cap.meteoalarm.webservices.svg.php';		
-				if($_GET['web_test'] == 3) die(print_r($svgArray)); // Array ( [result] => Array ( [result_code] => OK [result_label] => Array ( [iso] => AT [EMMA_ID] => ) ) [document] => Array ( [SvgInfo] => /*SVG*/ [Error] => )) 1
-				if(!empty($svgArray['document']['SvgInfo']))
-				{
-					$soap_SVG = $svgArray['document']['SvgInfo'];
-				}
-			}
-			if(file_exists('lib/cap.meteoalarm.webservices.vl.php'))  // test if the lib exists
+			if(file_exists('lib/cap.meteoalarm.webservices.user.php'))  // test if the lib exists
 			{
 				// Contains the warnings sorted to areas
-				$mapphp = true; // to change variable name to: AreaVLArray
-				include 'lib/cap.meteoalarm.webservices.vl.php'; // get data through the meteoalarm lib (vl - Visio Level)
-				if($_GET['web_test'] == 4) 
+				include 'lib/cap.meteoalarm.webservices.user.php'; // get data through the meteoalarm lib (vl - Visio Level)
+				if($_GET['web_test'] == 3) die(print_r($User));
+				if(!empty($User['document']['AreaInfo']))
 				{
-					print '<pre>'; 
-					print_r((($AreaVLArray['document']['AreaInfo']))); 
-					print '</pre>';
-					exit;
+					$User = $User['document']['AreaInfo'];
 				}
-				if(!empty($AreaVLArray['document']['AreaInfo']))
-				{
-					$AreaVLArray =	$AreaVLArray['document']['AreaInfo'];
-				}
-				// put Area VL details in a js variable named (area_vl )
-				if(!empty($AreaVLArray)) $SVLdetail = '<script>'."\n".'var area_vl = '.($AreaVLArray).';'."\n".'</script>';
 			}
 			
 			if(is_array($AreaCodesArray) && is_array($ParameterArray) && empty($AreaCodesArray['result']) && empty($ParameterArray['result']))
@@ -331,7 +334,7 @@
 		}
 		$login_to_webservice_faild = true;
 	}
-	
+
 	if(!file_exists('conf/conf.php'))
 	{
 		$cap = new CAP_Form();			
@@ -375,11 +378,7 @@
 		{
 			if(! empty($_FILES["uploadfile"]["name"]))
 			{
-				// Get TEST Cap
-				if(! empty($_FILES["uploadfile"]["name"]))
-				{
-					$location = $_FILES["uploadfile"]["tmp_name"];
-				}
+				$location = $_FILES["uploadfile"]["tmp_name"];
 			}
 			
 			$alert = new alert($location);
@@ -397,19 +396,18 @@
 		
 		if(! empty($_FILES["uploadfile"]["name"]))
 		{
-			// Get TEST Cap
-			if(! empty($_FILES["uploadfile"]["name"]))
-			{
-				$location = $_FILES["uploadfile"]["tmp_name"];
-			}
-			else
-			{
-				$location = $conf->cap->output.'/'.urldecode($_POST['location']);
-			}
+			$location = $_FILES["uploadfile"]["tmp_name"];
 		}
 		else
 		{
-			$location = $conf->cap->output.'/'.urldecode($_POST['location']);
+			if(! empty($_POST['location']))
+			{
+				$location = $conf->cap->output.'/'.urldecode($_POST['location']);
+			}
+			else if(! empty($_GET['location']))
+			{
+				$location = $conf->cap->output.'/'.urldecode($_GET['location']);
+			}
 		}
 		
 		$alert = new alert($location);
@@ -421,8 +419,6 @@
 			exit;
 		}
 		
-			$conf->optional_menu = "menu/map_menu.lib.php";
-
 			$form = new CAP_Form($cap);
 
 			print $form->Form();
@@ -443,48 +439,30 @@
 			$cap = $alert->output_template();
 			unset($alert);
 		}
+			
+		$form = new CAP_Form($cap);
 
-		if(! empty($_FILES["pluginZIP"]["name"]))
-		{
-			$pluginZIPlocation = $_FILES["pluginZIP"]["tmp_name"];
-			$plugin = new Plugin();
-			$plugin->install_plugin($pluginZIPlocation);
-		}
-
-		if(! empty($_POST['use_plugin']))
-		{
-			$plugin = new Plugin();
-			$plugin->fetch($_POST['use_plugin']);
-		}
-
-		if(! empty($_GET['use_plugin']))
-		{
-			$plugin = new Plugin();
-			$res = $plugin->fetch($_GET['use_plugin']);
-			if($res < 1)
-			{
-				die('Error: '.$plugin->get_error($res));
-			}
-		}
-		
-			$conf->optional_menu = "menu/map_menu.lib.php";
-
-			$form = new CAP_Form($cap);
-
-			print $form->Form();
+		print $form->Form();
 	}
 	elseif($_POST['action'] == "create" && $_GET['conf'] != 1 && $_POST['login_sended'] != 1)
 	{
 		$form = new CAP_Form();
-		$_POST = $form->MakeIdentifier($_POST);
+		//$_POST['alert'] = $form->MakeIdentifier($_POST['alert']);
 		
+		if($conf->webservice_aktive == 1)
+		{
+			if($_POST['sender'] == "") $_POST['sender'] = $User['sender'];
+			if($_POST['senderName'] == "") $_POST['senderName'] = $User['senderName'];
+		}
+
 		$cap = new CAP_Class($_POST);
 		
 		if(!empty($_GET['cap']))
 		{
 			// Used for the Cap preview
-			$cap->buildCap();
-			print $cap->cap;
+			print $form->formPostToCap($_POST);
+			//$cap->buildCap();
+			//print $cap->cap;
 		}
 		else
 		{
@@ -509,7 +487,7 @@
 	elseif($_GET['conf'] == "1")
 	{
 		$form = new CAP_Form();		
-		$form->PostToConf($_POST['conf']);		
+		$form->PostToConf($_POST['conf']);
 		$form->WriteConf();
 		
 		if($_POST['template_on'] == 'on')
