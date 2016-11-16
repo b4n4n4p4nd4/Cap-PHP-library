@@ -344,7 +344,6 @@
 				
 				$xml->tag_simple('status', $cap['status']);
 				$xml->tag_simple('msgType', $cap['msgType']);
-				$xml->tag_simple('references', $cap['references']);
 				$xml->tag_simple('scope', $cap['scope']);
 				
 				$xml->tag_simple('source', $cap['source']);
@@ -352,6 +351,7 @@
 				$xml->tag_simple('addresses', $cap['addresses']);
 				$xml->tag_simple('code', $cap['code']);
 				$xml->tag_simple('note', $cap['note']);
+				$xml->tag_simple('references', $cap['references']);
 				$xml->tag_simple('incidents', $cap['incidents']);
 				
 				foreach($cap['info'] as $info)
